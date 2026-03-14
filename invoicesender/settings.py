@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'myapp',
     'corsheaders',
-
+  
 ]
 
 MIDDLEWARE = [
@@ -61,6 +61,10 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://invoice-saas-frontend-five.vercel.app",
+]
 
 ROOT_URLCONF = 'invoicesender.urls'
 
