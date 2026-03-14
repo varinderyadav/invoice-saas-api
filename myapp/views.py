@@ -26,10 +26,6 @@ from .serializers import (
 from .utils import generate_invoice_pdf, send_invoice_email
 
 
-
-# Create your views here.
-
-
 class RegisterAPIView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
@@ -95,28 +91,29 @@ class InvoiceViewSet(ModelViewSet):
             raise ValidationError("This invoice is locked and cannot be edited.")
 
         return super().partial_update(request, *args, **kwargs)
-    
-    @action(detail=True, methods=['get'])
-    def download_pdf(self, request, pk=None):
+
+    @action(detail=True, methods=["get"], url_path="pdf")
+    def pdf(self, request, pk=None):
         invoice = self.get_object()
         pdf_buffer = generate_invoice_pdf(invoice)
+        filename = f"invoice-{invoice.invoice_no}.pdf"
 
         return HttpResponse(
-            pdf_buffer,
-            content_type='application/pdf',
+            pdf_buffer.getvalue(),
+            content_type="application/pdf",
             headers={
-                'Content-Disposition': f'attachment; filename="invoice_{invoice.invoice_no}.pdf"'
-            }
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
         )
 
-    @action(detail=True, methods=["get", "post"])
+    @action(detail=True, methods=["post"], url_path="send-email")
     def send_email(self, request, pk=None):
         invoice = self.get_object()
 
         try:
             send_invoice_email(invoice)
             return Response(
-                {"detail": "Invoice email sent successfully."},
+                {"message": "Invoice email sent successfully"},
                 status=status.HTTP_200_OK,
             )
         except ValueError as exc:
@@ -135,7 +132,6 @@ class InvoiceViewSet(ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    
 
 class ClientViewSet(ModelViewSet):
     queryset = Client.objects.all()
@@ -154,7 +150,7 @@ class ClientViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-    
+
 
 class ItemViewSet(ModelViewSet):
     queryset = Item.objects.all()
@@ -175,7 +171,6 @@ class ItemViewSet(ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-
 class InvoiceItemViewSet(ModelViewSet):
     queryset = InvoiceItem.objects.all()
     serializer_class = InvoiceItemSerializer
@@ -185,8 +180,8 @@ class InvoiceItemViewSet(ModelViewSet):
         return InvoiceItem.objects.filter(invoice__user=self.request.user)
 
     def perform_create(self, serializer):
-        invoice = serializer.validated_data['invoice']
-        item = serializer.validated_data['item']
+        invoice = serializer.validated_data["invoice"]
+        item = serializer.validated_data["item"]
 
         if invoice.is_locked:
             raise ValidationError("Cannot add items to a locked invoice.")

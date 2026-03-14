@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.core.validators import RegexValidator
 from .models import Invoice, Company, Client , Item , InvoiceItem
 
 
@@ -142,6 +143,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    username = serializers.CharField(
+        validators=[RegexValidator(r'^[\w\s@.+_-]+$', 'Enter a valid username.')]
+    )
 
     class Meta:
         model = User
