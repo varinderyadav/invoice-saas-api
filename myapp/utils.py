@@ -91,6 +91,12 @@ def send_invoice_email(invoice):
     if not client_email:
         raise ValueError("Client email is missing for this invoice.")
 
+    if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+        raise ValueError("Email credentials are not configured. Set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD.")
+
+    if not settings.DEFAULT_FROM_EMAIL:
+        raise ValueError("DEFAULT_FROM_EMAIL is not configured.")
+
     pdf_buffer = generate_invoice_pdf(invoice)
 
     client_name = getattr(invoice.client, "name", None) or getattr(invoice.client, "business_name", "Client")

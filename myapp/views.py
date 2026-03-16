@@ -1,3 +1,4 @@
+import logging
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import BadHeaderError
 from django.http import HttpResponse
@@ -25,6 +26,7 @@ from .serializers import (
 )
 from .utils import generate_invoice_pdf, send_invoice_email
 
+logger = logging.getLogger(__name__)
 
 class RegisterAPIView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -126,9 +128,10 @@ class InvoiceViewSet(ModelViewSet):
                 {"detail": f"Failed to prepare email: {exc}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception:
+        except Exception as exc:
+            logger.exception("Failed to send invoice email for invoice_id=%s", invoice.id)
             return Response(
-                {"detail": "Failed to send invoice email due to a server error."},
+                {"detail": f"Failed to send invoice email: {exc}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
