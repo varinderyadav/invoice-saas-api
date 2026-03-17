@@ -28,7 +28,7 @@ class OwnerOrAdminPermission(BasePermission):
     Object-level access:
     - Admins can access any object.
     - Normal users can access only their own objects.
-    - DELETE is restricted to admins only.
+    - Owners can manage their own objects.
     """
 
     def has_permission(self, request, view):
@@ -39,3 +39,6 @@ class OwnerOrAdminPermission(BasePermission):
             return True
 
         return getattr(obj, "user", None) == request.user
+
+    def message(self):
+        return "You do not have permission to delete this item."

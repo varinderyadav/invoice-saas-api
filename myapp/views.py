@@ -11,11 +11,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import Client, Company, Invoice, InvoiceItem, Item
-from .permissions import (
-    AdminFullAccessPermission,
-    IsAuthenticatedUser,
-    OwnerOrAdminPermission,
-)
+from .permissions import IsAuthenticatedUser, OwnerOrAdminPermission
 from .serializers import (
     ClientSerializer,
     CompanySerializer,
@@ -47,8 +43,6 @@ class CompanyViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedUser, OwnerOrAdminPermission]
 
     def get_permissions(self):
-        if self.action == "destroy":
-            return [IsAuthenticatedUser(), AdminFullAccessPermission()]
         return [permission() for permission in self.permission_classes]
 
     def get_queryset(self):
@@ -66,8 +60,6 @@ class InvoiceViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedUser, OwnerOrAdminPermission]
 
     def get_permissions(self):
-        if self.action == "destroy":
-            return [IsAuthenticatedUser(), AdminFullAccessPermission()]
         return [permission() for permission in self.permission_classes]
 
     def get_queryset(self):
@@ -142,8 +134,6 @@ class ClientViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedUser, OwnerOrAdminPermission]
 
     def get_permissions(self):
-        if self.action == "destroy":
-            return [IsAuthenticatedUser(), AdminFullAccessPermission()]
         return [permission() for permission in self.permission_classes]
 
     def get_queryset(self):
@@ -161,8 +151,6 @@ class ItemViewSet(ModelViewSet):
     permission_classes = [IsAuthenticatedUser, OwnerOrAdminPermission]
 
     def get_permissions(self):
-        if self.action == "destroy":
-            return [IsAuthenticatedUser(), AdminFullAccessPermission()]
         return [permission() for permission in self.permission_classes]
 
     def get_queryset(self):
