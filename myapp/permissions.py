@@ -38,7 +38,4 @@ class OwnerOrAdminPermission(BasePermission):
         if request.user.is_staff:
             return True
 
-        if request.method == "DELETE":
-            return False
-
         return getattr(obj, "user", None) == request.user
