@@ -30,6 +30,7 @@ class OwnerOrAdminPermission(BasePermission):
     - Normal users can access only their own objects.
     - Owners can manage their own objects.
     """
+    message = "You do not have permission to delete this item."
 
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated)
@@ -39,6 +40,3 @@ class OwnerOrAdminPermission(BasePermission):
             return True
 
         return getattr(obj, "user", None) == request.user
-
-    def message(self):
-        return "You do not have permission to delete this item."
