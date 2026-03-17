@@ -15,7 +15,9 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class ClientSerializer(serializers.ModelSerializer):
     company = serializers.PrimaryKeyRelatedField(
-        queryset=Company.objects.all()
+        queryset=Company.objects.all(),
+        required=False,
+        allow_null=True
     )
 
     def __init__(self, *args, **kwargs):

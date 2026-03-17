@@ -31,7 +31,9 @@ class Client(models.Model):
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,
-        related_name='clients'
+        related_name='clients',
+        null=True,
+        blank=True,
     )
 
     business_name = models.CharField(max_length=150)
