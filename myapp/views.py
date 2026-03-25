@@ -10,7 +10,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Client, Company, Invoice, InvoiceItem, Item
+from decimal import Decimal
+from .models import Client, Company, Invoice, InvoiceItem, Item, Payment
 from .permissions import IsAuthenticatedUser, OwnerOrAdminPermission
 from .serializers import (
     ClientSerializer,
@@ -18,6 +19,7 @@ from .serializers import (
     InvoiceItemSerializer,
     InvoiceSerializer,
     ItemSerializer,
+    PaymentSerializer,
     RegisterSerializer,
 )
 from .utils import generate_invoice_pdf, send_invoice_email
@@ -126,6 +128,55 @@ class InvoiceViewSet(ModelViewSet):
                 {"detail": f"Failed to send invoice email: {exc}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @action(detail=True, methods=["get", "post"], url_path="payments")
+    def payments(self, request, pk=None):
+        invoice = self.get_object()
+
+        if request.method == "GET":
+            payments = invoice.payments.order_by("-created_at")
+            serializer = PaymentSerializer(payments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = PaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        amount = serializer.validated_data.get("amount")
+        payment_method = serializer.validated_data.get("payment_method")
+
+        if amount is None or amount <= 0:
+            raise ValidationError("Payment amount must be greater than 0.")
+
+        remaining = invoice.remaining_amount if invoice.remaining_amount is not None else invoice.item_total
+        if amount > remaining:
+            raise ValidationError("Payment amount cannot exceed the remaining amount.")
+
+        Payment.objects.create(
+            invoice=invoice,
+            amount=amount,
+            payment_method=payment_method,
+        )
+
+        invoice.total_paid_amount = (invoice.total_paid_amount or Decimal("0")) + amount
+        invoice.remaining_amount = invoice.item_total - invoice.total_paid_amount
+        if invoice.total_paid_amount == 0:
+            invoice.payment_status = "pending"
+        elif invoice.total_paid_amount < invoice.item_total:
+            invoice.payment_status = "partially_paid"
+        else:
+            invoice.payment_status = "paid"
+
+        invoice.save(update_fields=["total_paid_amount", "remaining_amount", "payment_status"])
+
+        return Response(
+            {
+                "message": "Payment recorded successfully.",
+                "total_paid_amount": invoice.total_paid_amount,
+                "remaining_amount": invoice.remaining_amount,
+                "payment_status": invoice.payment_status,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ClientViewSet(ModelViewSet):

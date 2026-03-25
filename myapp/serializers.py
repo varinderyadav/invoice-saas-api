@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
-from .models import Invoice, Company, Client , Item , InvoiceItem
+from .models import Invoice, Company, Client , Item , InvoiceItem, Payment
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -133,6 +133,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'item_subtotal_gst',
             'item_total',
             'is_locked',
+            'total_paid_amount',
+            'remaining_amount',
+            'payment_status',
         )
 
     def __init__(self, *args, **kwargs):
@@ -177,3 +180,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ('id', 'invoice', 'amount', 'payment_method', 'created_at')
+        read_only_fields = ('id', 'invoice', 'created_at')

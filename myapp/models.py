@@ -81,6 +81,11 @@ class Invoice(models.Model):
         ('paid', 'Paid'),
         ('cancelled', 'Cancelled'),
     )
+    PAYMENT_STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('partially_paid', 'Partially Paid'),
+        ('paid', 'Paid'),
+    )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
@@ -97,6 +102,9 @@ class Invoice(models.Model):
     item_subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     item_subtotal_gst = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     item_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
 
     def save(self, *args, **kwargs):
         # Auto generate invoice number
@@ -118,6 +126,19 @@ class Invoice(models.Model):
         if self.status in ['paid', 'cancelled']:
             self.is_locked = True
 
+        # Update payment summary
+        if self.total_paid_amount is None:
+            self.total_paid_amount = 0
+        if self.item_total is None:
+            self.item_total = 0
+        self.remaining_amount = self.item_total - self.total_paid_amount
+        if self.total_paid_amount == 0:
+            self.payment_status = 'pending'
+        elif self.total_paid_amount < self.item_total:
+            self.payment_status = 'partially_paid'
+        else:
+            self.payment_status = 'paid'
+
         super().save(*args, **kwargs)
 
     def calculate_totals(self):
@@ -131,12 +152,21 @@ class Invoice(models.Model):
         self.item_subtotal_amount = subtotal
         self.item_subtotal_gst = gst
         self.item_total = subtotal + gst
+        self.remaining_amount = self.item_total - (self.total_paid_amount or 0)
+        if (self.total_paid_amount or 0) == 0:
+            self.payment_status = 'pending'
+        elif (self.total_paid_amount or 0) < self.item_total:
+            self.payment_status = 'partially_paid'
+        else:
+            self.payment_status = 'paid'
 
         super().save(
             update_fields=[
                 'item_subtotal_amount',
                 'item_subtotal_gst',
-                'item_total'
+                'item_total',
+                'remaining_amount',
+                'payment_status',
             ]
         )
     def __str__(self):
@@ -186,4 +216,23 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.invoice.invoice_no} - {self.item.item_name}"
+
+
+class Payment(models.Model):
+    PAYMENT_METHOD_CHOICES = (
+        ('cash', 'Cash'),
+        ('online', 'Online'),
+    )
+
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name='payments'
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.invoice.invoice_no} - {self.amount}"
     
