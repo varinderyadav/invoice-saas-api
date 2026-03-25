@@ -147,7 +147,7 @@ class InvoiceViewSet(ModelViewSet):
         if amount is None or amount <= 0:
             raise ValidationError("Payment amount must be greater than 0.")
 
-        remaining = invoice.remaining_amount if invoice.remaining_amount is not None else invoice.item_total
+        remaining = invoice.item_total - (invoice.total_paid_amount or Decimal("0"))
         if amount > remaining:
             raise ValidationError("Payment amount cannot exceed the remaining amount.")
 
