@@ -145,11 +145,17 @@ class InvoiceViewSet(ModelViewSet):
         payment_method = serializer.validated_data.get("payment_method")
 
         if amount is None or amount <= 0:
-            raise ValidationError("Payment amount must be greater than 0.")
+            return Response(
+                {"detail": "Payment amount must be greater than 0"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         remaining = invoice.item_total - (invoice.total_paid_amount or Decimal("0"))
         if amount > remaining:
-            raise ValidationError("Payment amount cannot exceed the remaining amount.")
+            return Response(
+                {"detail": "Payment amount cannot exceed remaining balance"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         Payment.objects.create(
             invoice=invoice,
