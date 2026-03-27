@@ -113,6 +113,8 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     invoice_items = InvoiceItemSerializer(many=True, read_only=True)
+    total_paid = serializers.SerializerMethodField()
+    remaining_amount = serializers.SerializerMethodField()
 
     company_name = serializers.CharField(
         source='company.business_name',
@@ -134,8 +136,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'item_total',
             'is_locked',
             'total_paid_amount',
-            'remaining_amount',
             'payment_status',
+            'total_paid',
+            'remaining_amount',
         )
 
     def __init__(self, *args, **kwargs):
@@ -144,6 +147,12 @@ class InvoiceSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated and not request.user.is_staff:
             self.fields['company'].queryset = Company.objects.filter(user=request.user)
             self.fields['client'].queryset = Client.objects.filter(user=request.user)
+
+    def get_total_paid(self, obj):
+        return sum(payment.amount for payment in obj.payments.all())
+
+    def get_remaining_amount(self, obj):
+        return obj.item_total - self.get_total_paid(obj)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
