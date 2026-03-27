@@ -152,6 +152,7 @@ class InvoiceViewSet(ModelViewSet):
 
         remaining = invoice.item_total - (invoice.total_paid_amount or Decimal("0"))
         if amount > remaining:
+            print(f"Attempted to record payment of {amount} which exceeds remaining balance of {remaining}")
             return Response(
                 {"detail": "Payment amount cannot exceed remaining balance"},
                 status=status.HTTP_400_BAD_REQUEST,
